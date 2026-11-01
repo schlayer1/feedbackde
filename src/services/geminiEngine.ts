@@ -23,15 +23,35 @@ const CANDIDATE_FLASH_MODELS = [
   'gemini-3.1-flash-lite-preview',
 ];
 
+export function getStoredGeminiApiKey(): string {
+  if (typeof window === 'undefined') return '';
+  return localStorage.getItem('fbs_gemini_api_key')?.trim() || '';
+}
+
+export function setStoredGeminiApiKey(key: string): void {
+  if (typeof window === 'undefined') return;
+  const clean = key.trim();
+  if (clean) {
+    localStorage.setItem('fbs_gemini_api_key', clean);
+  } else {
+    localStorage.removeItem('fbs_gemini_api_key');
+  }
+}
+
+export function hasActiveGeminiApiKey(): boolean {
+  return !!getStoredGeminiApiKey();
+}
+
 export async function callGeminiApi({
   apiKey,
   systemPrompt,
   userPrompt,
   image,
   model = 'auto',
-  temperature = 0.2
+  temperature = 0.0
 }: GeminiCallParams): Promise<string> {
-  const cleanKey = apiKey?.trim() || '';
+  const storedKey = getStoredGeminiApiKey();
+  const cleanKey = apiKey?.trim() || storedKey;
   const effectiveClientKey = (cleanKey && cleanKey !== 'serverless-proxy') ? cleanKey : '';
 
   // 1. Primärer Pfad: Sicherer Serverless / Lokaler Vite Proxy

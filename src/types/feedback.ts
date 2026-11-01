@@ -18,6 +18,12 @@ export interface CriterionItem {
   description: string; // Leitfragen & Erwartungshorizont
   maxPoints: number; // z.B. 40
   weightPercentage: number; // z.B. 40%
+  anchorLevels?: {
+    level4: string; // 90-100% (Exzellent / Stark voll erfüllt)
+    level3: string; // 75-89%  (Gut / Überwiegend erfüllt)
+    level2: string; // 50-74%  (Befriedigend / Teils erfüllt)
+    level1: string; // <50%    (Förderbedarf / Nicht erfüllt)
+  };
 }
 
 export interface PromptConfig {
@@ -58,6 +64,9 @@ export interface StarkFeedbackResult {
   }[];
   examTips: string[]; // Konkrete Tipps für die Thüringer Abschlussprüfung
   teacherNote?: string; // Manuelle Ergänzung der Lehrkraft
+  deltaSummary?: string; // Didaktische Zusammenfassung der Revision (Veränderung zu v1)
+  isRevision?: boolean; // Kennzeichnung als Revisionsbewertung
+  previousTotalScore?: number; // Punkte der Vorversion
 }
 
 export type SubmissionStatus = 

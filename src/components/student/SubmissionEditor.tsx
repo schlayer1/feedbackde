@@ -132,7 +132,8 @@ export const SubmissionEditor: React.FC<SubmissionEditorProps> = ({
         graduationType: selectedGraduation,
         studentName,
         studentCode,
-        previousVersionText: isRevisionMode && prevVersion ? prevVersion.textContent : undefined
+        previousVersionText: isRevisionMode && prevVersion ? prevVersion.textContent : undefined,
+        previousFeedback: isRevisionMode && prevVersion ? prevVersion.feedback : undefined
       });
 
       // 2. Status ermitteln (Hybrid-Modus der Klasse)

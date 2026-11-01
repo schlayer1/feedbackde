@@ -132,6 +132,16 @@ export const FeedbackView: React.FC<FeedbackViewProps> = ({
             <p className="text-sm text-slate-600 max-w-3xl leading-relaxed">
               {fb.overallImpression}
             </p>
+
+            {fb.deltaSummary && (
+              <div className="mt-2.5 p-3 bg-purple-50 border border-purple-200 rounded-xl text-xs text-purple-950 flex items-start gap-2">
+                <RefreshCw className="w-4 h-4 text-purple-700 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="text-purple-900 block font-bold">Lernfortschritt im Vergleich zu Version 1:</strong>
+                  <span>{fb.deltaSummary}</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Noten- & Punktebox */}
