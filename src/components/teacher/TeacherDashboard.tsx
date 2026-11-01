@@ -1,4 +1,4 @@
-// src/components/teacher/TeacherDashboard.tsx - Zentrales Lehrer-Dashboard
+// src/components/teacher/TeacherDashboard.tsx - Zentrales Lehrer-Dashboard mit Fließtext-Gutachten
 import React, { useState } from 'react';
 import { getSubmissions, createOrUpdateSubmission } from '../../services/feedbackStore';
 import { Submission, SubmissionVersion } from '../../types/feedback';
@@ -12,7 +12,6 @@ import { DEFAULT_CLASSES } from '../../services/schoolStudentAuth';
 import { 
   GraduationCap, 
   Search, 
-  Filter, 
   Key, 
   Copy, 
   Check, 
@@ -21,12 +20,15 @@ import {
   Sliders, 
   Settings, 
   Printer, 
-  FileText, 
-  RefreshCw,
-  Award,
-  ChevronRight,
-  TrendingUp,
-  AlertCircle
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  MessageSquare,
+  Sparkles,
+  AlertTriangle,
+  Quote,
+  BookOpen,
+  Edit3
 } from 'lucide-react';
 
 export const TeacherDashboard: React.FC = () => {
@@ -35,6 +37,9 @@ export const TeacherDashboard: React.FC = () => {
   const [selectedTextType, setSelectedTextType] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
+
+  // Eingeblendetes Fließtext-Gutachten in der Tabelle
+  const [expandedSubId, setExpandedSubId] = useState<string | null>(null);
 
   // Modals
   const [reviewSubmission, setReviewSubmission] = useState<{ sub: Submission; version: SubmissionVersion } | null>(null);
@@ -64,21 +69,22 @@ export const TeacherDashboard: React.FC = () => {
     setSubmissions(getSubmissions());
   };
 
+  const toggleExpand = (e: React.MouseEvent, subId: string) => {
+    e.stopPropagation();
+    setExpandedSubId(expandedSubId === subId ? null : subId);
+  };
+
   const reloadSubmissions = () => {
     setSubmissions(getSubmissions());
   };
 
   // Filter-Logik
   const filteredSubmissions = submissions.filter(sub => {
-    // 1. Klasse
     if (selectedClass !== 'all' && sub.schoolClass !== selectedClass) return false;
-    // 2. Textsorte
     if (selectedTextType !== 'all' && sub.textTypeId !== selectedTextType) return false;
-    // 3. Status
     if (selectedStatus === 'pending' && sub.latestStatus !== 'pending_teacher') return false;
     if (selectedStatus === 'released' && !['auto_released', 'released_by_teacher'].includes(sub.latestStatus)) return false;
     if (selectedStatus === 'revised' && sub.currentVersion <= 1) return false;
-    // 4. Volltextsuche
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       const matchName = sub.studentName.toLowerCase().includes(term);
@@ -114,7 +120,7 @@ export const TeacherDashboard: React.FC = () => {
               </h1>
             </div>
             <p className="text-xs sm:text-sm text-slate-500">
-              Übersicht, Prüfung und Steuerung aller Schülerarbeiten der Klassen 9a–9c & 10a–10c.
+              Vollständige Einsicht in alle Punkte, Fließtext-Gutachten und Freigaben der Klassen 9a–9c & 10a–10c.
             </p>
           </div>
 
@@ -199,8 +205,7 @@ export const TeacherDashboard: React.FC = () => {
 
         {/* Dropdowns & Suchfeld */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
-          {/* Textsorten-Filter */}
-          <div className="relative">
+          <div>
             <select
               value={selectedTextType}
               onChange={(e) => setSelectedTextType(e.target.value)}
@@ -213,7 +218,6 @@ export const TeacherDashboard: React.FC = () => {
             </select>
           </div>
 
-          {/* Status-Filter */}
           <div>
             <select
               value={selectedStatus}
@@ -227,7 +231,6 @@ export const TeacherDashboard: React.FC = () => {
             </select>
           </div>
 
-          {/* Volltext-Suche */}
           <div className="relative">
             <input
               type="text"
@@ -241,12 +244,15 @@ export const TeacherDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. SCHÜLERABGABEN-TABELLE */}
+      {/* 3. SCHÜLERABGABEN-TABELLE MIT FLIESSTEXT-AKKORDEON */}
       <div className="bg-white border border-school-border rounded-2xl shadow-soft overflow-hidden">
         <div className="p-4 border-b border-school-border flex items-center justify-between">
           <h2 className="text-sm font-bold text-slate-800">
             Eingereichte Arbeiten ({filteredSubmissions.length})
           </h2>
+          <span className="text-[11px] text-slate-400">
+            Klicke auf eine Zeile oder „Gutachten anzeigen“, um das vollständige Fließtext-Gutachten einzusehen.
+          </span>
         </div>
 
         {filteredSubmissions.length === 0 ? (
@@ -260,7 +266,7 @@ export const TeacherDashboard: React.FC = () => {
                 <tr className="bg-slate-50 border-b border-school-border text-slate-600 font-bold uppercase tracking-wider text-[11px]">
                   <th className="p-3.5">Schüler & Kürzel</th>
                   <th className="p-3.5">Klasse</th>
-                  <th className="p-3.5">Thema & Textsorte</th>
+                  <th className="p-3.5">Thema & Gutachten-Titel</th>
                   <th className="p-3.5">Abschluss</th>
                   <th className="p-3.5 text-center">Version</th>
                   <th className="p-3.5 text-center">Note / Punkte</th>
@@ -274,129 +280,230 @@ export const TeacherDashboard: React.FC = () => {
                   const fb = latestVersion?.feedback;
                   const gradeInfo = fb ? getGradeDescriptor(fb.gradeEstimate) : null;
                   const isGradRealschule = sub.graduationType === 'realschule_10';
+                  const isExpanded = expandedSubId === sub.id;
 
                   return (
-                    <tr 
-                      key={sub.id} 
-                      className="hover:bg-slate-50/70 transition cursor-pointer"
-                      onClick={() => setReviewSubmission({ sub, version: latestVersion })}
-                    >
-                      {/* Name & Kürzel mit 1-Klick-Kopieren */}
-                      <td className="p-3.5">
-                        <div className="font-bold text-slate-900 text-sm">{sub.studentName}</div>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-900 px-2 py-0.5 rounded font-mono text-[10px] font-bold">
-                            <Key className="w-3 h-3 text-amber-600" />
-                            <span>{sub.studentCode}</span>
+                    <React.Fragment key={sub.id}>
+                      <tr 
+                        className={`hover:bg-slate-50/80 transition cursor-pointer ${isExpanded ? 'bg-blue-50/30' : ''}`}
+                        onClick={() => setReviewSubmission({ sub, version: latestVersion })}
+                      >
+                        {/* Name & Kürzel mit 1-Klick-Kopieren */}
+                        <td className="p-3.5">
+                          <div className="font-bold text-slate-900 text-sm">{sub.studentName}</div>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-900 px-2 py-0.5 rounded font-mono text-[10px] font-bold">
+                              <Key className="w-3 h-3 text-amber-600" />
+                              <span>{sub.studentCode}</span>
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={(e) => handleCopyCode(e, sub.studentCode)}
+                              title="Kürzel in Zwischenablage kopieren"
+                              className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-500 hover:text-school-blue hover:bg-blue-50 px-1.5 py-0.5 rounded transition"
+                            >
+                              {copiedCode === sub.studentCode ? (
+                                <>
+                                  <Check className="w-3 h-3 text-emerald-600" />
+                                  <span className="text-emerald-700 font-bold">Kopiert!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="w-3 h-3" />
+                                  <span>Kopieren</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </td>
+
+                        {/* Klasse mit Dropdown zur schnellen Korrektur */}
+                        <td className="p-3.5" onClick={(e) => e.stopPropagation()}>
+                          <select
+                            value={sub.schoolClass}
+                            onChange={(e) => handleClassChange(sub, e.target.value)}
+                            className="bg-slate-100 hover:bg-slate-200 font-mono font-bold text-xs text-slate-800 rounded px-2 py-1 border border-slate-200 cursor-pointer"
+                          >
+                            {DEFAULT_CLASSES.map(cls => (
+                              <option key={cls} value={cls}>{cls}</option>
+                            ))}
+                          </select>
+                        </td>
+
+                        {/* Thema & Gutachten-Titel */}
+                        <td className="p-3.5 max-w-sm">
+                          <div className="font-bold text-slate-800 truncate" title={sub.taskTitle}>
+                            {sub.taskTitle}
+                          </div>
+                          {fb && (
+                            <div className="text-[11px] text-school-blue font-medium truncate mt-0.5 italic">
+                              "{fb.summaryTitle}"
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Abschlussart */}
+                        <td className="p-3.5">
+                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
+                            isGradRealschule
+                              ? 'bg-orange-50 text-orange-800 border border-orange-200'
+                              : 'bg-blue-50 text-blue-800 border border-blue-200'
+                          }`}>
+                            {isGradRealschule ? 'Realschule' : 'Quali'}
                           </span>
+                        </td>
+
+                        {/* Version */}
+                        <td className="p-3.5 text-center">
+                          <span className={`inline-block font-mono font-bold px-2 py-0.5 rounded text-xs ${
+                            sub.currentVersion > 1 ? 'bg-purple-100 text-purple-900 border border-purple-200' : 'bg-slate-100 text-slate-700'
+                          }`}>
+                            v{sub.currentVersion}
+                          </span>
+                        </td>
+
+                        {/* Note & Punkte */}
+                        <td className="p-3.5 text-center">
+                          {fb ? (
+                            <div className="inline-flex items-center gap-1.5">
+                              <span className={`px-2 py-0.5 rounded border font-mono font-bold text-xs ${gradeInfo?.bg} ${gradeInfo?.color}`}>
+                                Note {fb.gradeEstimate}
+                              </span>
+                              <span className="font-mono text-slate-500 text-[11px]">
+                                {fb.totalScore} Pkt
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </td>
+
+                        {/* Status */}
+                        <td className="p-3.5">
+                          {latestVersion.status === 'pending_teacher' && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
+                              <Clock className="w-3 h-3 text-amber-600" />
+                              <span>Freigabe nötig</span>
+                            </span>
+                          )}
+                          {['auto_released', 'released_by_teacher'].includes(latestVersion.status) && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              <span>Freigegeben</span>
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Aktionen & Fließtext-Toggle */}
+                        <td className="p-3.5 text-right space-x-1.5 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            onClick={(e) => toggleExpand(e, sub.id)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs font-semibold transition"
+                            title="Fließtext-Gutachten direkt einblenden"
+                          >
+                            <span>Gutachten</span>
+                            {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                          </button>
 
                           <button
                             type="button"
-                            onClick={(e) => handleCopyCode(e, sub.studentCode)}
-                            title="Kürzel in Zwischenablage kopieren"
-                            className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-500 hover:text-school-blue hover:bg-blue-50 px-1.5 py-0.5 rounded transition"
+                            onClick={() => setReviewSubmission({ sub, version: latestVersion })}
+                            className="px-3 py-1.5 rounded-lg bg-school-blue hover:bg-school-blueDark text-white font-bold text-xs shadow-xs transition"
                           >
-                            {copiedCode === sub.studentCode ? (
-                              <>
-                                <Check className="w-3 h-3 text-emerald-600" />
-                                <span className="text-emerald-700 font-bold">Kopiert!</span>
-                              </>
-                            ) : (
-                              <>
-                                <Copy className="w-3 h-3" />
-                                <span>Kopieren</span>
-                              </>
-                            )}
+                            {latestVersion.status === 'pending_teacher' ? 'Prüfen & Freigeben' : 'Öffnen'}
                           </button>
-                        </div>
-                      </td>
+                        </td>
+                      </tr>
 
-                      {/* Klasse mit Dropdown zur schnellen Korrektur */}
-                      <td className="p-3.5" onClick={(e) => e.stopPropagation()}>
-                        <select
-                          value={sub.schoolClass}
-                          onChange={(e) => handleClassChange(sub, e.target.value)}
-                          className="bg-slate-100 hover:bg-slate-200 font-mono font-bold text-xs text-slate-800 rounded px-2 py-1 border border-slate-200 cursor-pointer"
-                        >
-                          {DEFAULT_CLASSES.map(cls => (
-                            <option key={cls} value={cls}>{cls}</option>
-                          ))}
-                        </select>
-                      </td>
+                      {/* EINGEBLENDETES FLIESSTEXT-GUTACHTEN (AKKORDEON) */}
+                      {isExpanded && fb && (
+                        <tr className="bg-slate-50/90 border-b border-school-border animate-fadeIn">
+                          <td colSpan={8} className="p-4 sm:p-6 space-y-4">
+                            <div className="bg-white border border-school-border rounded-2xl p-5 shadow-xs space-y-4">
+                              {/* Titel & Gesamteindruck */}
+                              <div className="space-y-1.5 border-b border-slate-100 pb-3">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs font-bold text-school-blue uppercase tracking-wider flex items-center gap-1.5">
+                                    <Sparkles className="w-3.5 h-3.5 text-school-orange" />
+                                    <span>Pädagogische Gesamtwürdigung (Fließtext)</span>
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setReviewSubmission({ sub, version: latestVersion })}
+                                    className="text-xs font-bold text-school-orange hover:underline flex items-center gap-1"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                    <span>Fließtext editieren</span>
+                                  </button>
+                                </div>
+                                <h3 className="text-base font-black text-slate-900">{fb.summaryTitle}</h3>
+                                <p className="text-xs sm:text-sm text-slate-700 leading-relaxed italic bg-slate-50 p-3 rounded-xl border border-slate-200">
+                                  "{fb.overallImpression}"
+                                </p>
+                              </div>
 
-                      {/* Thema & Textsorte */}
-                      <td className="p-3.5 max-w-xs">
-                        <div className="font-bold text-slate-800 truncate" title={sub.taskTitle}>
-                          {sub.taskTitle}
-                        </div>
-                        <div className="text-[11px] text-slate-500 capitalize">
-                          {sub.textTypeId}
-                        </div>
-                      </td>
+                              {/* Kriterien-Kommentare */}
+                              <div className="space-y-2">
+                                <span className="text-xs font-bold text-slate-700 uppercase tracking-wide block">
+                                  Individuelle Kriterien-Begründungen:
+                                </span>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                                  {fb.criteriaResults.map((c, i) => (
+                                    <div key={i} className="p-3 rounded-xl border border-slate-200 bg-slate-50/50 text-xs space-y-1">
+                                      <div className="flex items-center justify-between font-bold text-slate-800">
+                                        <span>{c.title}</span>
+                                        <span className="font-mono text-school-blue">{c.achievedPoints} / {c.maxPoints} Pkt</span>
+                                      </div>
+                                      <p className="text-slate-600 italic text-[11px]">{c.comment}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
 
-                      {/* Abschlussart */}
-                      <td className="p-3.5">
-                        <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
-                          isGradRealschule
-                            ? 'bg-orange-50 text-orange-800 border border-orange-200'
-                            : 'bg-blue-50 text-blue-800 border border-blue-200'
-                        }`}>
-                          {isGradRealschule ? 'Realschule' : 'Quali'}
-                        </span>
-                      </td>
+                              {/* Zitate & Formulierungshilfen */}
+                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+                                <div className="p-3 rounded-xl bg-emerald-50/50 border border-emerald-200 text-xs space-y-1.5">
+                                  <span className="font-bold text-emerald-800 uppercase tracking-wide block text-[11px]">
+                                    Gelungene Textstellen (Stärken):
+                                  </span>
+                                  {fb.strengths.slice(0, 2).map((s, idx) => (
+                                    <div key={idx} className="text-slate-700">
+                                      <span className="font-serif italic text-emerald-950 font-medium">"{s.quote}"</span>
+                                      <p className="text-[11px] text-emerald-900 mt-0.5">➔ {s.explanation}</p>
+                                    </div>
+                                  ))}
+                                </div>
 
-                      {/* Version */}
-                      <td className="p-3.5 text-center">
-                        <span className={`inline-block font-mono font-bold px-2 py-0.5 rounded text-xs ${
-                          sub.currentVersion > 1 ? 'bg-purple-100 text-purple-900 border border-purple-200' : 'bg-slate-100 text-slate-700'
-                        }`}>
-                          v{sub.currentVersion}
-                        </span>
-                      </td>
+                                <div className="p-3 rounded-xl bg-amber-50/50 border border-amber-200 text-xs space-y-1.5">
+                                  <span className="font-bold text-amber-900 uppercase tracking-wide block text-[11px]">
+                                    Kritische Stellen & Besser so:
+                                  </span>
+                                  {fb.improvements.slice(0, 2).map((imp, idx) => (
+                                    <div key={idx} className="text-slate-700">
+                                      <span className="font-serif italic text-slate-800 font-medium">"{imp.quote}"</span>
+                                      <p className="text-[11px] text-school-blue font-bold mt-0.5">Besser so: {imp.suggestion}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
 
-                      {/* Note & Punkte */}
-                      <td className="p-3.5 text-center">
-                        {fb ? (
-                          <div className="inline-flex items-center gap-1.5">
-                            <span className={`px-2 py-0.5 rounded border font-mono font-bold text-xs ${gradeInfo?.bg} ${gradeInfo?.color}`}>
-                              Note {fb.gradeEstimate}
-                            </span>
-                            <span className="font-mono text-slate-500 text-[11px]">
-                              {fb.totalScore} Pkt
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-slate-400">—</span>
-                        )}
-                      </td>
-
-                      {/* Status */}
-                      <td className="p-3.5">
-                        {latestVersion.status === 'pending_teacher' && (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
-                            <Clock className="w-3 h-3 text-amber-600" />
-                            <span>Freigabe nötig</span>
-                          </span>
-                        )}
-                        {['auto_released', 'released_by_teacher'].includes(latestVersion.status) && (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                            <span>Freigegeben</span>
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Aktionen */}
-                      <td className="p-3.5 text-right space-x-2" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          onClick={() => setReviewSubmission({ sub, version: latestVersion })}
-                          className="px-3 py-1.5 rounded-lg bg-school-blue hover:bg-school-blueDark text-white font-bold text-xs shadow-xs transition"
-                        >
-                          {latestVersion.status === 'pending_teacher' ? 'Prüfen & Freigeben' : 'Öffnen'}
-                        </button>
-                      </td>
-                    </tr>
+                              {/* Lehrer-Kommentar falls vorhanden */}
+                              {fb.teacherNote && (
+                                <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-900 flex items-start gap-2">
+                                  <MessageSquare className="w-4 h-4 text-school-blue shrink-0 mt-0.5" />
+                                  <div>
+                                    <strong className="text-school-blue">Eigener Lehrkraft-Kommentar: </strong>
+                                    <span className="italic">{fb.teacherNote}</span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>

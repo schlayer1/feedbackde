@@ -186,7 +186,7 @@ export function updateSubmissionStatus(
   submissionId: string, 
   versionNumber: number, 
   newStatus: SubmissionStatus, 
-  teacherNote?: string
+  teacherNoteOrFeedback?: string | import('../types/feedback').StarkFeedbackResult
 ): Submission | null {
   const all = getSubmissions();
   const index = all.findIndex(s => s.id === submissionId);
@@ -195,13 +195,16 @@ export function updateSubmissionStatus(
   const sub = all[index];
   const updatedVersions = sub.versions.map(v => {
     if (v.versionNumber === versionNumber) {
+      let finalFeedback = v.feedback;
+      if (typeof teacherNoteOrFeedback === 'object' && teacherNoteOrFeedback !== null) {
+        finalFeedback = teacherNoteOrFeedback;
+      } else if (typeof teacherNoteOrFeedback === 'string') {
+        finalFeedback = v.feedback ? { ...v.feedback, teacherNote: teacherNoteOrFeedback } : undefined;
+      }
       return {
         ...v,
         status: newStatus,
-        feedback: v.feedback ? {
-          ...v.feedback,
-          teacherNote: teacherNote !== undefined ? teacherNote : v.feedback.teacherNote
-        } : undefined
+        feedback: finalFeedback
       };
     }
     return v;
