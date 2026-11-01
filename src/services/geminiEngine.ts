@@ -36,10 +36,76 @@ export function setStoredGeminiApiKey(key: string): void {
   } else {
     localStorage.removeItem('fbs_gemini_api_key');
   }
+  cachedStatus = null;
+  lastCheckTime = 0;
+}
+
+export interface GeminiEngineStatus {
+  isOnline: boolean;
+  mode: 'serverless' | 'custom' | 'offline';
+  label: string;
+  details: string;
+  model?: string;
+}
+
+let cachedStatus: GeminiEngineStatus | null = null;
+let lastCheckTime = 0;
+
+export async function checkGeminiStatus(forceRefresh = false): Promise<GeminiEngineStatus> {
+  const now = Date.now();
+  if (!forceRefresh && cachedStatus && (now - lastCheckTime < 15000)) {
+    return cachedStatus;
+  }
+
+  const storedKey = getStoredGeminiApiKey();
+  if (storedKey) {
+    cachedStatus = {
+      isOnline: true,
+      mode: 'custom',
+      label: 'Eigener Schlüssel aktiv',
+      details: 'Du nutzt einen individuellen Schlüssel für diesen Browser.',
+      model: 'gemini-flash-lite-latest'
+    };
+    lastCheckTime = now;
+    return cachedStatus;
+  }
+
+  // Check serverless proxy
+  try {
+    const res = await fetch('/api/gemini', {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.hasServerKey) {
+        cachedStatus = {
+          isOnline: true,
+          mode: 'serverless',
+          label: 'Gemini Live (Schule)',
+          details: 'Zentraler Vercel-Schlüssel (GEMINI_API_KEY) ist aktiv. Alle Analysen laufen live über Google Gemini.',
+          model: data.activeModel || 'gemini-flash-lite-latest'
+        };
+        lastCheckTime = now;
+        return cachedStatus;
+      }
+    }
+  } catch (e) {
+    // Proxy not available (e.g. running vite local without proxy)
+  }
+
+  cachedStatus = {
+    isOnline: false,
+    mode: 'offline',
+    label: 'Offline-Demonstrator',
+    details: 'Weder in Vercel noch im Browser ist ein Schlüssel hinterlegt. Die App nutzt den didaktischen Offline-Modus.'
+  };
+  lastCheckTime = now;
+  return cachedStatus;
 }
 
 export function hasActiveGeminiApiKey(): boolean {
-  return !!getStoredGeminiApiKey();
+  return !!getStoredGeminiApiKey() || (cachedStatus?.isOnline ?? false);
 }
 
 export async function callGeminiApi({

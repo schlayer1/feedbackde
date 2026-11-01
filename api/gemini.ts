@@ -20,8 +20,20 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
+  if (req.method === 'GET') {
+    const serverKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '').trim();
+    return res.status(200).json({
+      status: 'ok',
+      hasServerKey: Boolean(serverKey),
+      activeModel: 'gemini-flash-lite-latest',
+      message: serverKey
+        ? 'Zentraler Schul-Serverless-Proxy ist aktiv und betriebsbereit.'
+        : 'Serverless-Proxy ist erreichbar, aber kein GEMINI_API_KEY hinterlegt.'
+    });
+  }
+
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Nur POST-Anfragen zulässig.' });
+    return res.status(405).json({ error: 'Nur GET- und POST-Anfragen zulässig.' });
   }
 
   try {

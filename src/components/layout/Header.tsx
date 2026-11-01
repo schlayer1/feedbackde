@@ -1,9 +1,9 @@
 // src/components/layout/Header.tsx - Responsiver Header nach Heimbürgeschule-Standard
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { GraduationCap, LogOut, User, Key, Sliders, Settings, School, Sparkles } from 'lucide-react';
+import { GraduationCap, LogOut, User, Key, Sliders, Settings, School, Sparkles, Server } from 'lucide-react';
 import { DEFAULT_CLASSES } from '../../services/schoolStudentAuth';
-import { hasActiveGeminiApiKey } from '../../services/geminiEngine';
+import { checkGeminiStatus, GeminiEngineStatus } from '../../services/geminiEngine';
 import { ApiKeyModal } from '../common/ApiKeyModal';
 
 interface HeaderProps {
@@ -20,11 +20,23 @@ export const Header: React.FC<HeaderProps> = ({
   const { role, studentCode, studentName, schoolClass, logout, updateStudentClass } = useAuth();
   const [onlineStatus, setOnlineStatus] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
-  const [hasCustomKey, setHasCustomKey] = useState(() => hasActiveGeminiApiKey());
+  const [engineStatus, setEngineStatus] = useState<GeminiEngineStatus | null>(null);
+
+  const refreshKeyStatus = async () => {
+    const s = await checkGeminiStatus(true);
+    setEngineStatus(s);
+  };
 
   useEffect(() => {
-    const handleOnline = () => setOnlineStatus(true);
-    const handleOffline = () => setOnlineStatus(false);
+    refreshKeyStatus();
+    const handleOnline = () => {
+      setOnlineStatus(true);
+      refreshKeyStatus();
+    };
+    const handleOffline = () => {
+      setOnlineStatus(false);
+      refreshKeyStatus();
+    };
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     return () => {
@@ -33,9 +45,7 @@ export const Header: React.FC<HeaderProps> = ({
     };
   }, []);
 
-  const refreshKeyStatus = () => {
-    setHasCustomKey(hasActiveGeminiApiKey());
-  };
+  const isKiLive = engineStatus?.isOnline ?? false;
 
   return (
     <>
@@ -59,15 +69,19 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsApiKeyModalOpen(true)}
-                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-tight transition-all cursor-pointer hover:scale-105 active:scale-95 ${
-                    hasCustomKey || onlineStatus
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-tight transition-all cursor-pointer hover:scale-105 active:scale-95 ${
+                    isKiLive
                       ? 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/30'
                       : 'bg-amber-500/10 text-amber-700 border border-amber-500/30'
                   }`}
-                  title="Klicken für KI-Status und API-Schlüssel-Einstellungen"
+                  title={
+                    isKiLive
+                      ? `Google Gemini Live-KI aktiv (${engineStatus?.mode === 'serverless' ? 'Schul-Cloud' : 'Browser-Key'})`
+                      : 'Didaktischer Offline-Demonstrator (Klicken für Status)'
+                  }
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full ${hasCustomKey || onlineStatus ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-                  <span>{hasCustomKey ? 'Gemini Live' : 'KI Status'}</span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${isKiLive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                  <span>{isKiLive ? 'Gemini Live' : 'Offline-Modus'}</span>
                 </button>
               </div>
               <div className="flex items-center gap-1.5 text-[11px] sm:text-xs">

@@ -24,9 +24,24 @@ function geminiLocalProxyPlugin(): Plugin {
       return;
     }
 
+    if (req.method === 'GET') {
+      const serverKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '').trim();
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({
+        status: 'ok',
+        hasServerKey: Boolean(serverKey),
+        activeModel: 'gemini-flash-lite-latest',
+        message: serverKey
+          ? 'Lokaler Vite Proxy aktiv mit GEMINI_API_KEY'
+          : 'Lokaler Vite Proxy aktiv, aber kein GEMINI_API_KEY in der Umgebung hinterlegt'
+      }));
+      return;
+    }
+
     if (req.method !== 'POST') {
       res.statusCode = 405;
-      res.end(JSON.stringify({ error: 'Nur POST-Anfragen zulässig.' }));
+      res.end(JSON.stringify({ error: 'Nur GET- und POST-Anfragen zulässig.' }));
       return;
     }
 
