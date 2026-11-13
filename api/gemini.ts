@@ -1,13 +1,11 @@
 // api/gemini.ts - Vercel Serverless Function Proxy gemäß gemini-school-api
 const CANDIDATE_FLASH_MODELS = [
+  'gemini-4-hydrogen',
   'gemini-flash-lite-latest',
-  'gemini-3-flash-preview',
-  'gemini-flash-latest',
-  'gemini-3.6-flash',
-  'gemini-3.7-flash',
+  'gemini-3.5-flash-lite',
   'gemini-3.8-flash',
-  'gemini-3.5-flash',
-  'gemini-3.1-flash-lite-preview',
+  'gemini-3.6-flash',
+  'gemini-flash-latest',
 ];
 
 export default async function handler(req: any, res: any) {
@@ -25,7 +23,7 @@ export default async function handler(req: any, res: any) {
     return res.status(200).json({
       status: 'ok',
       hasServerKey: Boolean(serverKey),
-      activeModel: 'gemini-flash-lite-latest',
+      activeModel: 'gemini-4-hydrogen',
       message: serverKey
         ? 'Zentraler Schul-Serverless-Proxy ist aktiv und betriebsbereit.'
         : 'Serverless-Proxy ist erreichbar, aber kein GEMINI_API_KEY hinterlegt.'

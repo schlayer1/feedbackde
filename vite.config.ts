@@ -2,14 +2,12 @@ import { defineConfig, Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 
 const CANDIDATE_FLASH_MODELS = [
+  'gemini-4-hydrogen',
   'gemini-flash-lite-latest',
-  'gemini-3-flash-preview',
-  'gemini-flash-latest',
-  'gemini-3.6-flash',
-  'gemini-3.7-flash',
+  'gemini-3.5-flash-lite',
   'gemini-3.8-flash',
-  'gemini-3.5-flash',
-  'gemini-3.1-flash-lite-preview',
+  'gemini-3.6-flash',
+  'gemini-flash-latest',
 ];
 
 function geminiLocalProxyPlugin(): Plugin {
@@ -31,7 +29,7 @@ function geminiLocalProxyPlugin(): Plugin {
       res.end(JSON.stringify({
         status: 'ok',
         hasServerKey: Boolean(serverKey),
-        activeModel: 'gemini-flash-lite-latest',
+        activeModel: 'gemini-4-hydrogen',
         message: serverKey
           ? 'Lokaler Vite Proxy aktiv mit GEMINI_API_KEY'
           : 'Lokaler Vite Proxy aktiv, aber kein GEMINI_API_KEY in der Umgebung hinterlegt'

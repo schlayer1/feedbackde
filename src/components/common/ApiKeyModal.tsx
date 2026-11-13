@@ -262,7 +262,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ onClose, onKeyChanged 
             <p className="leading-relaxed">
               {isServerlessActive ? (
                 <span className="text-emerald-800 font-medium">
-                  ✅ Das Secret <code className="bg-white px-1.5 py-0.5 rounded border border-emerald-300 font-mono text-emerald-700 font-bold">GEMINI_API_KEY</code> ist in Vercel aktiv hinterlegt. Alle Abgaben laufen bereits servergeschützt über Google Gemini 2.5 Flash!
+                  ✅ Das Secret <code className="bg-white px-1.5 py-0.5 rounded border border-emerald-300 font-mono text-emerald-700 font-bold">GEMINI_API_KEY</code> ist in Vercel aktiv hinterlegt. Alle Abgaben laufen bereits servergeschützt über Google Gemini 4 Hydrogen / Flash!
                 </span>
               ) : (
                 <span>
