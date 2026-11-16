@@ -1,11 +1,12 @@
 // src/services/documentExtractor.ts - Textextraktion aus DOCX, PDF und Bild-Screenshots
 import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { callGeminiApi } from './geminiEngine';
 
-// Konfiguriere PDF.js Worker
+// Konfiguriere lokalen PDF.js Worker (ohne externes CDN)
 if (typeof window !== 'undefined' && pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version || '4.10.38'}/pdf.worker.min.mjs`;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 }
 
 export interface ExtractedDocumentResult {

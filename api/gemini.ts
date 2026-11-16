@@ -8,14 +8,41 @@ const CANDIDATE_FLASH_MODELS = [
   'gemini-flash-latest',
 ];
 
+function isOriginAllowed(req: any): boolean {
+  const origin = req.headers?.origin;
+  if (!origin) return true;
+  const host = req.headers?.host;
+  if (!host) return true;
+  try {
+    const parsedOrigin = new URL(origin);
+    if (parsedOrigin.host === host) return true;
+    const allowedOrigin = (process.env.ALLOWED_ORIGIN || '').trim();
+    if (allowedOrigin && origin === allowedOrigin) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 export default async function handler(req: any, res: any) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers?.origin;
+  res.setHeader('Vary', 'Origin');
+  if (origin && isOriginAllowed(req)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
 
   if (req.method === 'OPTIONS') {
+    if (!isOriginAllowed(req)) {
+      return res.status(403).json({ error: 'Origin nicht erlaubt.' });
+    }
     res.status(200).end();
     return;
+  }
+
+  if (!isOriginAllowed(req)) {
+    return res.status(403).json({ error: 'Cross-Origin-Zugriff nicht erlaubt.' });
   }
 
   if (req.method === 'GET') {
@@ -88,6 +115,7 @@ export default async function handler(req: any, res: any) {
         const response = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(45000),
           body: JSON.stringify({
             contents: [{ role: 'user', parts }],
             generationConfig: {
