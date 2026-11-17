@@ -159,6 +159,17 @@ function geminiLocalProxyPlugin(): Plugin {
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react(), geminiLocalProxyPlugin()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-pdf': ['pdfjs-dist'],
+          'vendor-docx': ['mammoth'],
+        }
+      }
+    }
+  },
   optimizeDeps: {
     include: ['pdfjs-dist']
   }
